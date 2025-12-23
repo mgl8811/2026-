@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+    <meta charset="UTF-8">
+    <title>PetroChina DAQING TAMSAG XXI- Ажлын Хуанли 2026</title>
+    <style>
+        :root {
+            --petro-red: #ee1c25;
+            --petro-yellow: #ffcf01;
+            --shift-work: #ff4d4d;
+            --shift-rest: #2ecc71;
+        }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
+        .header {
+            background: linear-gradient(135deg, var(--petro-red) 70%, var(--petro-yellow));
+            color: white; padding: 20px; border-radius: 12px; text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1); margin-bottom: 25px;
+        }
+        .container { 
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); 
+            gap: 20px; max-width: 1500px; margin: 0 auto; 
+        }
+        .month-card { background: white; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); overflow: hidden; border-top: 5px solid var(--petro-yellow); position: relative; }
+        .month-name { background: #333; color: white; text-align: center; padding: 10px; font-weight: bold; }
+        
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        th, td { border: 1px solid #eee; height: 65px; text-align: center; vertical-align: top; padding: 4px; cursor: pointer; }
+        th { height: 30px; background-color: #f8f9fa; font-size: 11px; }
+        
+        .work { background-color: var(--shift-work) !important; color: white !important; font-weight: bold; }
+        .rest { background-color: var(--shift-rest) !important; color: white !important; }
+        
+        .day-num { font-size: 18px; font-weight: bold; display: block; margin-top: 5px; }
+        .holiday-tag { font-size: 8px; font-weight: bold; line-height: 9px; display: block; color: #d32f2f; background: rgba(255,255,255,0.9); border-radius: 2px; margin-top: 5px; padding: 2px; border: 1px solid #007bff; white-space: nowrap; overflow: hidden; }
+
+        #modal {
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            z-index: 2000; width: 320px; text-align: center; border-top: 8px solid var(--petro-red);
+        }
+        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1999; backdrop-filter: blur(2px); }
+        .close-btn { background: #333; color: white; padding: 10px 25px; border: none; border-radius: 5px; cursor: pointer; margin-top: 15px; font-weight: bold; }
+
+        .salary-info { 
+            padding: 12px; background-color: #e8f5e9; border-top: 2px solid #2ecc71;
+            font-size: 13px; color: #2e7d32; text-align: center; line-height: 1.6;
+        }
+        .h-count { color: #d32f2f; font-weight: bold; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1 style="margin:0;">PETROCHINA DAQING TAMSAG LLC - АЖЛЫН ХУВААРЬ 2026</h1>
+    <p style="margin:5px 0 0 0;">Дотоод хэрэгцээнд ашиглах 21-р талбай (14 ажиллана / 14 амарна | Цалин: 21 - 20)</p>
+</div>
+
+<div id="calendarContainer" class="container"></div>
+
+<div id="modal-overlay" onclick="closeModal()"></div>
+<div id="modal">
+    <h2 id="modal-title" style="color:var(--petro-red)"></h2>
+    <p id="modal-desc"></p>
+    <button class="close-btn" onclick="closeModal()">Хаах</button>
+</div>
+
+<script>
+    const holidayDetails = {
+        "0-1": { name: "Шинэ жил", desc: "Дэлхий даяар он солигдож буй баярын өдөр." },
+        "1-17": { name: "Битүүн", desc: "Сар шинийн өмнөх үдэш." },
+        "1-18": { name: "Шинийн 1", desc: "XVII жарны 'Галт морь' жилийн Цагаан сарын баяр." },
+        "1-19": { name: "Шинийн 2", desc: "Цагаан сарын баяр үргэлжилнэ." },
+        "1-20": { name: "Шинийн 3", desc: "Цагаан сарын баяр үргэлжилнэ." },
+        "2-8": { name: "Мартын 8", desc: "Олон улсын эмэгтэйчүүдийн эрхийг хамгаалах өдөр." },
+        "4-30": { name: "Дүйчин өдөр", desc: "Бурхан багшийн мэндэлсэн, гэгээрсэн, нирваан дүрийг үзүүлсэн их баяр." },
+        "5-1": { name: "Хүүхдийн баяр", desc: "Олон улсын хүүхдийн эрхийг хамгаалах өдөр." },
+        // НААДАМ: 7 сарын 10-наас 15-ны хооронд
+        "6-10": { name: "Наадам", desc: "Үндэсний их баяр наадмын амралт." },
+        "6-11": { name: "Наадам", desc: "Үндэсний их баяр наадам." },
+        "6-12": { name: "Наадам", desc: "Үндэсний их баяр наадам." },
+        "6-13": { name: "Наадам", desc: "Үндэсний их баяр наадам." },
+        "6-14": { name: "Наадам", desc: "Үндэсний их баяр наадам." },
+        "6-15": { name: "Наадам", desc: "Үндэсний их баяр наадмын амралт." },
+        "10-11": { name: "Чингис хаан", desc: "Их Эзэн Чингис хааны мэндэлсэн өдөр." },
+        "10-26": { name: "Тунхаглал", desc: "Бүгд Найрамдах Улс тунхагласны баяр." },
+        "11-29": { name: "Тусгаар тогтнол", desc: "Үндэсний эрх чөлөө, тусгаар тогтнолоо сэргээсэн өдөр." }
+    };
+
+    const shiftStart = new Date(2026, 0, 12);
+    const container = document.getElementById('calendarContainer');
+    const monthNames = ["1-р сар", "2-р сар", "3-р сар", "4-р сар", "5-р сар", "6-р сар", "7-р сар", "8-р сар", "9-р сар", "10-р сар", "11-р сар", "12-р сар"];
+
+    for (let month = 0; month < 12; month++) {
+        let card = document.createElement('div');
+        card.className = 'month-card';
+        let html = `<div class="month-name">${monthNames[month]}</div>`;
+        html += `<table><thead><tr><th>Да</th><th>Мя</th><th>Лх</th><th>Пү</th><th>Ба</th><th>Бя</th><th>Ня</th></tr></thead><tbody><tr>`;
+
+        let daysCount = new Date(2026, month + 1, 0).getDate();
+        let offset = new Date(2026, month, 1).getDay();
+        offset = offset === 0 ? 6 : offset - 1;
+
+        for (let i = 0; i < offset; i++) html += '<td></td>';
+
+        for (let day = 1; day <= daysCount; day++) {
+            if ((offset + day - 1) % 7 === 0 && day !== 1) html += '</tr><tr>';
+            let curr = new Date(2026, month, day);
+            let diff = Math.floor((curr - shiftStart) / 86400000);
+            let cycle = ((diff % 28) + 28) % 28;
+            let hKey = `${month}-${day}`;
+            let hInfo = holidayDetails[hKey];
+            
+            html += `<td class="${cycle < 14 ? 'work' : 'rest'}" onclick="showDayInfo('${hKey}', ${day})">
+                        <span class="day-num">${day}</span>
+                        ${hInfo ? `<span class="holiday-tag">${hInfo.name}</span>` : ""}
+                     </td>`;
+        }
+
+        let pM = month === 0 ? 11 : month - 1;
+        let pY = month === 0 ? 2025 : 2026;
+        let workDays = 0;
+        let holidayCount = 0;
+        let dS = new Date(pY, pM, 21);
+        let dE = new Date(2026, month, 20);
+        
+        for (let d = new Date(dS); d <= dE; d.setDate(d.getDate() + 1)) {
+            let hInfo = holidayDetails[`${d.getMonth()}-${d.getDate()}`];
+            if (hInfo) {
+                holidayCount++;
+            } else if (d.getDay() !== 0 && d.getDay() !== 6) {
+                workDays++;
+            }
+        }
+
+        html += `</tr></tbody></table><div class="salary-info">
+                    Тооцох үе: ${pM+1}/21 - ${month+1}/20<br>
+                    <b>Ажлын хоног: ${workDays}</b> | 
+                    Нийтээр амрах өдөр: <span class="h-count">${holidayCount}</span>
+                 </div>`;
+        card.innerHTML = html;
+        container.appendChild(card);
+    }
+
+    function showDayInfo(key, day) {
+        if (holidayDetails[key]) {
+            document.getElementById('modal-title').innerText = holidayDetails[key].name;
+            document.getElementById('modal-desc').innerText = holidayDetails[key].desc;
+            document.getElementById('modal-overlay').style.display = 'block';
+            document.getElementById('modal').style.display = 'block';
+        }
+    }
+    function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; document.getElementById('modal').style.display = 'none'; }
+</script>
+</body>
+</html>
